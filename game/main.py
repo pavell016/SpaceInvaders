@@ -7,7 +7,7 @@ import os
 pygame.font.init()
 FONT = pygame.font.SysFont("times new roman", 20)
 # set window parameters
-WIDTH, HEIGHT = 1, 1
+WIDTH, HEIGHT = 650, 750
 WINDOW = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("Space Invaders knockoff")
 
@@ -20,11 +20,18 @@ BG = pygame.transform.scale(BG,(WIDTH,HEIGHT))
 
 
 # player caracteristics
-PLAYER_WIDTH=20
-PLAYER_HEIGHT=20
+PLAYER_WIDTH=50
+PLAYER_HEIGHT=40
 PLAYER_IMG=pygame.image.load(os.path.join(current_dir,"player.png"))
 PLAYER_IMG=pygame.transform.scale(PLAYER_IMG, (PLAYER_WIDTH,PLAYER_HEIGHT))
 PLAYER_VEL=5
+# disparo powerup
+ORIGINAL_PLAYER_IMG = PLAYER_IMG.copy()  #copia imagen jugador
+# jugdor con powerup velocidad disparo
+# Boosted player image
+BOOSTED_PLAYER_IMG = pygame.image.load(os.path.join(current_dir, "shootbost_spaceship.png"))
+BOOSTED_PLAYER_IMG = pygame.transform.scale(BOOSTED_PLAYER_IMG, (PLAYER_WIDTH, PLAYER_HEIGHT))
+
 
 # enemy caracteristics
 ENEMY_WIDTH=60
@@ -63,9 +70,16 @@ BOOTS=pygame.transform.scale(BOOTS, (BOOTS_WIDTH,BOOTS_HEIGT))
     # shoot boost
 SPEEDBOOST_HEIGT=50
 SPEEDBOOST_WIDTH=50
-SPEEDBOOST_VEL=1
-# SPEEDBOOST=pygame.image.load(os.path.join(current_dir,"boots.png"))
-# SPEEDBOOST=pygame.transform.scale(BOOTS, (BOOTS_WIDTH,BOOTS_HEIGT))    
+SPEEDBOOST_VEL=2
+SPEEDBOOST=pygame.image.load(os.path.join(current_dir,"shotboost_powerup.png"))
+SPEEDBOOST=pygame.transform.scale(SPEEDBOOST, (SPEEDBOOST_WIDTH,SPEEDBOOST_HEIGT))    
+
+    # life powerup
+LIFE_HEIGT=30
+LIFE_WIDTH=30
+LIFE_VEL=1
+LIFE=pygame.image.load(os.path.join(current_dir,"hpup.png"))
+LIFE=pygame.transform.scale(LIFE, (LIFE_WIDTH,LIFE_HEIGT))        
 
 # end menu details
 TOTAL_ENEMY_KILLED=0
@@ -73,7 +87,7 @@ TOTAL_ENEMY_KILLED=0
 
 
 
-def draw(player, elapsed_time, enemies, projectiles,powerups):
+def draw(player, elapsed_time, enemies, projectiles,powerups,Shoot_pow, Life_up):
     WINDOW.blit(BG,(-1,0))
 
     # life draw
@@ -83,6 +97,8 @@ def draw(player, elapsed_time, enemies, projectiles,powerups):
         WINDOW.blit(HP2, (WIDTH - 110, 10))
     elif HIT_COUNT == 2:
         WINDOW.blit(HP1, (WIDTH - 110, 10))
+    else:
+        WINDOW.blit(HP3, (WIDTH - 110, 10))    
 
     # time
     time_text=FONT.render(f"Time: {round(elapsed_time)}s", 1, "white")
@@ -101,6 +117,12 @@ def draw(player, elapsed_time, enemies, projectiles,powerups):
     # speed draw
     for boost in powerups:
         WINDOW.blit(BOOTS, boost.topleft)
+    # shoot draw
+    for boost in Shoot_pow:
+        WINDOW.blit(SPEEDBOOST, boost.topleft)
+    # life draw
+    for boost in Life_up:
+        WINDOW.blit(LIFE, boost.topleft)
     pygame.display.update()
 
 
@@ -159,6 +181,7 @@ def main():
     # vidas
     global HIT_COUNT
     global PLAYER_VEL
+    global PLAYER_IMG
     # enemios muertos
     global TOTAL_ENEMY_KILLED
 
@@ -189,8 +212,14 @@ def main():
     projectiles=[]
     cooldown=200
     lastshot=0
-    # powerup speed
-    powerups=[]
+    shoot_boost_active = False
+    shoot_boost_start_time = 0
+    shoot_boost_counter = 0
+
+    # powerups
+    Speed_pow=[]
+    Shoot_pow=[]
+    Life_up=[]
 
     while run:
         enemy_count+=clock.tick(60) #utilitza frames per segon
@@ -198,18 +227,28 @@ def main():
 
         # generar enemigos
         if enemy_count > enemy_increment:
-            for _ in range(3):
+            for _ in range(random.randint(1,7)):
                 enemy_X = random.randint(0,WIDTH - ENEMY_WIDTH)
                 enemy= pygame.Rect(enemy_X, -ENEMY_HEIGT,ENEMY_WIDTH, ENEMY_HEIGT )
                 enemies.append(enemy)
-            enemy_increment = max(200, enemy_increment-10)    
+            enemy_increment = max(200, enemy_increment-15)    
             enemy_count=0    
                 
-        # generar un powerup
-        if random.random() < 0.001:  # small chance for powerup to appear
+        # generar un powerup de rapideza
+        if random.random() < 0.0007:  
             powerup_X = random.randint(0, WIDTH - BOOTS_WIDTH)
             powerup = pygame.Rect(powerup_X, -BOOTS_HEIGT, BOOTS_WIDTH, BOOTS_HEIGT)
-            powerups.append(powerup)
+            Speed_pow.append(powerup)
+        # generar un powerup de rapideza de disparo
+        if random.random() < 0.0005:  
+            powerup_X = random.randint(0, WIDTH - SPEEDBOOST_WIDTH)
+            powerup = pygame.Rect(powerup_X, -SPEEDBOOST_HEIGT, SPEEDBOOST_WIDTH, SPEEDBOOST_HEIGT)
+            Shoot_pow.append(powerup)
+        # generar poweups para vida
+        if random.random() < 0.0001:  
+            powerup_X = random.randint(0, WIDTH - SPEEDBOOST_WIDTH)
+            powerup = pygame.Rect(powerup_X, -LIFE_HEIGT, LIFE_WIDTH, LIFE_HEIGT)
+            Life_up.append(powerup)    
 
         for event in pygame.event.get():
             # en el cas que es tanqui la pestaña amb la "X" es tancara el joc
@@ -242,25 +281,53 @@ def main():
             disparar(player)
             lastshot = current_t
 
-        # speed powerup
-        for powerup in powerups[:]:
+        # Speed boost powerup
+        for powerup in Speed_pow[:]:
             powerup.y += BOOTS_VEL
             if powerup.y > HEIGHT:
-                powerups.remove(powerup)
+                Speed_pow.remove(powerup)
             elif powerup.colliderect(player):  # Power-up collected
-                powerups.remove(powerup)
+                Speed_pow.remove(powerup)
                 PLAYER_VEL += 1
+
+        # Shooting speed boost powerup
+        for powerup in Shoot_pow[:]:
+            powerup.y += SPEEDBOOST_VEL
+            if powerup.y > HEIGHT:
+                Shoot_pow.remove(powerup)
+            elif powerup.colliderect(player):  # Power-up collected
+                Shoot_pow.remove(powerup)
+                PLAYER_IMG = BOOSTED_PLAYER_IMG  # change player img to boosted player in¡mg
+                cooldown = 100
+                shoot_boost_active = True
+                shoot_boost_start_time = pygame.time.get_ticks()
+
+        # Restore original image after 20 seconds
+        if shoot_boost_active and pygame.time.get_ticks() - shoot_boost_start_time > 20000:  # 20 seconds
+            PLAYER_IMG = ORIGINAL_PLAYER_IMG
+            cooldown = 200
+            shoot_boost_active = False
+
+        # Speed boost powerup
+        for powerup in Life_up[:]:
+            powerup.y += LIFE_VEL
+            if powerup.y > HEIGHT:
+                Life_up.remove(powerup)
+            elif powerup.colliderect(player):  # Power-up collected
+                Life_up.remove(powerup)
+                HIT_COUNT -= 1
+                       
         # mover enemigos
         for enemy in enemies[:]:
             enemy.y += ENEMY_VEL
             if enemy.y > HEIGHT:
                 enemies.remove(enemy)
-            elif enemy.y >= player.y and enemy.colliderect(player) or enemy.x >= player.x and enemy.colliderect(player):
+            elif enemy.colliderect(player):  
                 enemies.remove(enemy)
-                HIT_COUNT+=1
+                HIT_COUNT += 1
                 if HIT_COUNT >= 3:
                     hit = True
-                    break 
+                    break
         # mover disparos
         for projectile in projectiles[:]:
             projectile.y -= LASER_VEL  # Move the projectile upwards
@@ -279,7 +346,7 @@ def main():
         if hit: 
             endmenu(elapsed_time)
             break                 
-        draw(player, elapsed_time,enemies, projectiles,powerups)
+        draw(player, elapsed_time,enemies, projectiles,Speed_pow,Shoot_pow, Life_up)
 
     # Sortir del joc
     pygame.quit() 
