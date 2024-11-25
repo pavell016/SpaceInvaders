@@ -7,7 +7,7 @@ import os
 pygame.font.init()
 FONT = pygame.font.SysFont("times new roman", 20)
 # set window parameters
-WIDTH, HEIGHT = 650, 750
+WIDTH, HEIGHT = 1, 1
 WINDOW = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("Space Invaders knockoff")
 
@@ -20,8 +20,8 @@ BG = pygame.transform.scale(BG,(WIDTH,HEIGHT))
 
 
 # player caracteristics
-PLAYER_WIDTH=50
-PLAYER_HEIGHT=40
+PLAYER_WIDTH=20
+PLAYER_HEIGHT=20
 PLAYER_IMG=pygame.image.load(os.path.join(current_dir,"player.png"))
 PLAYER_IMG=pygame.transform.scale(PLAYER_IMG, (PLAYER_WIDTH,PLAYER_HEIGHT))
 PLAYER_VEL=5
